@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#121212" />
+    <meta name="description" content="ROOKIE GLOW — control LED por Bluetooth" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>ROOKIE GLOW</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="sky" aria-hidden="true"></div>
+
+    <header class="top">
+      <div class="brand">
+        <img class="brand-logo" src="icons/icon-192.png" alt="ROOKIE GLOW" width="48" height="48" />
+        <div>
+          <h1>ROOKIE <span class="glow-word">GLOW</span></h1>
+          <p class="tagline">Luz inteligente · Bluetooth LE</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="btn-theme" class="btn ghost icon-btn" title="Cambiar tema" aria-label="Tema">◐</button>
+        <button type="button" id="btn-install" class="btn ghost" hidden>Instalar app</button>
+      </div>
+    </header>
+
+    <div id="compat-banner" class="banner" hidden></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <main class="layout">
+      <div class="layout-side">
+      <section class="panel install-panel">
+        <h3 class="panel-title">Instalar en el teléfono</h3>
+        <div class="install-row">
+          <img id="qr-install" class="qr" alt="QR ROOKIE GLOW" width="180" height="180" />
+          <div class="install-copy">
+            <p>Clientes: escanea el <strong>QR del producto</strong> (app en internet). No necesitas el PC del vendedor.</p>
+            <p class="hint">En desarrollo, escanea este QR con Chrome (Android).</p>
+            <p class="hint" id="install-url">—</p>
+            <p class="hint">Menú ⋮ → <strong>Instalar app</strong> · luego <strong>Buscar ROOKIE</strong>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel connect-panel">
+        <h3 class="panel-title">Cómo conectar</h3>
+          <div class="conn-row">
+            <div>
+              <p class="label">Estado BLE</p>
+              <p id="conn-name" class="conn-name">Ningún dispositivo</p>
+              <span id="conn-badge" class="badge" data-state="off">Desconectado</span>
+            </div>
+            <div class="conn-actions">
+              <button type="button" id="btn-scan" class="btn primary">Añadir luna</button>
+              <button type="button" id="btn-reconnect" class="btn">Reconectar</button>
+              <button type="button" id="btn-disconnect" class="btn ghost" disabled>Desconectar</button>
+            </div>
+          </div>
+          <div class="target-mode" role="group" aria-label="Destino de control">
+            <button type="button" class="target-btn active" data-target-mode="active" id="mode-active">
+              Solo seleccionada
+            </button>
+            <button type="button" class="target-btn" data-target-mode="all" id="mode-all">
+              Todas las conectadas
+            </button>
+          </div>
+          <div id="known-list" class="known-list"></div>
+          <p class="hint">
+            Conecta varias lunas con <strong>Añadir luna</strong>. Toca una para seleccionarla
+            (sin desconectar las otras) o elige <strong>Todas</strong> para controlar N a la vez.
+          </p>
+      </section>
+      </div>
+
+      <section id="controls" class="controls disabled">
+        <div class="controls-grid">
+          <div class="controls-visual">
+            <div class="preview-wrap">
+              <canvas id="moon-preview" width="220" height="220" aria-label="Vista previa"></canvas>
+              <h2 id="luna-title">ROOKIE GLOW</h2>
+              <p id="transport-label" class="hint">—</p>
+            </div>
+
+            <div class="row power-row">
+              <label class="switch">
+                <input type="checkbox" id="power-toggle" checked />
+                <span class="slider"></span>
+                <span>Encendido</span>
+              </label>
+              <button type="button" id="btn-auto" class="btn">Secuencia automática</button>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="bri-slider">Brillo</label>
+                <span id="bri-val">180</span>
+              </div>
+              <input type="range" id="bri-slider" min="0" max="255" value="180" />
+            </div>
+
+            <div class="color-tabs">
+              <button type="button" class="color-tab active" data-color-target="primary">Color primario</button>
+              <button type="button" class="color-tab" data-color-target="secondary" id="color2-tab" hidden>Color secundario</button>
+            </div>
+
+            <div class="wheel-wrap">
+              <div class="wheel-stage">
+                <canvas id="color-wheel" width="280" height="280" aria-label="Rueda de color"></canvas>
+                <span id="color-tip" class="color-tip">Ámbar</span>
+              </div>
+              <canvas id="color-value" class="value-bar" width="280" height="28" aria-label="Intensidad"></canvas>
+              <div class="color-meta">
+                <span id="color-hex">#ffc850</span>
+                <input type="color" id="color-primary" value="#ffc850" hidden />
+                <input type="color" id="color-secondary" value="#142850" hidden />
+              </div>
+            </div>
+
+            <div class="fav-row">
+              <div id="fav-colors" class="swatches"></div>
+              <button type="button" id="btn-fav-add" class="btn ghost small">+ Favorito</button>
+            </div>
+          </div>
+
+          <div class="controls-fx">
+            <h3>Efectos</h3>
+            <div id="fx-grid" class="fx-grid"></div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="speed-slider">Velocidad</label>
+                <span id="speed-val">128</span>
+              </div>
+              <input type="range" id="speed-slider" min="0" max="255" value="128" />
+            </div>
+
+            <div id="auto-wrap" class="field" hidden>
+              <label for="auto-interval">Intervalo secuencia (segundos)</label>
+              <input type="number" id="auto-interval" min="1" max="120" value="8" />
+            </div>
+
+            <h3>Renombrar</h3>
+            <div class="inline">
+              <input type="text" id="rename-input" maxlength="20" placeholder="Nombre amigable" />
+              <button type="button" id="btn-rename" class="btn">Guardar nombre</button>
+            </div>
+
+            <h3>Escenas</h3>
+            <div class="inline">
+              <input type="text" id="preset-name" maxlength="32" placeholder="Nombre de la escena" />
+              <button type="button" id="btn-save-preset" class="btn primary">Guardar escena</button>
+            </div>
+            <div id="preset-list" class="preset-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>ROOKIE GLOW · Solo Bluetooth LE · iPhone/Safari: Bluefy o Capacitor para BLE.</p>
+    </footer>
+
+    <script type="module" src="js/app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

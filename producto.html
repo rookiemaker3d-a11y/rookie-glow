@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#121212" />
+    <meta name="description" content="Instala ROOKIE GLOW y conecta tu luna LED por Bluetooth" />
+    <title>ROOKIE GLOW — Instalar app</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .product-hero {
+        text-align: center;
+        padding: 1.5rem 0 0.5rem;
+      }
+      .product-hero img.logo {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        box-shadow: 0 12px 40px rgba(43, 181, 232, 0.25);
+      }
+      .product-hero h1 {
+        font-family: var(--display);
+        font-size: 1.75rem;
+        margin: 1rem 0 0.25rem;
+      }
+      .product-cta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin: 1.25rem 0;
+      }
+      .product-cta .btn {
+        width: 100%;
+        justify-content: center;
+        font-size: 1.05rem;
+        padding: 0.85rem 1rem;
+      }
+      .steps {
+        text-align: left;
+        margin: 0;
+        padding-left: 1.25rem;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .steps li {
+        margin-bottom: 0.5rem;
+      }
+      .qr-product {
+        display: block;
+        margin: 1rem auto 0;
+        border-radius: 12px;
+        background: #fff;
+        padding: 8px;
+        max-width: 220px;
+        width: 100%;
+        height: auto;
+      }
+      .url-hint {
+        word-break: break-all;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sky" aria-hidden="true"></div>
+    <main class="panel product-hero">
+      <img class="logo" src="icons/icon-192.png" alt="" width="96" height="96" />
+      <h1>ROOKIE <span class="glow-word">GLOW</span></h1>
+      <p class="tagline">Control por Bluetooth · sin cable del vendedor</p>
+
+      <div class="product-cta">
+        <button type="button" id="btn-install-product" class="btn primary" hidden>Instalar app</button>
+        <a id="link-open-app" class="btn" href="./index.html">Abrir app</a>
+      </div>
+
+      <h3 class="panel-title">Pasos</h3>
+      <ol class="steps">
+        <li>Abre esta página en <strong>Chrome</strong> (Android) por HTTPS.</li>
+        <li>Toca <strong>Instalar app</strong> (o menú ⋮ → Instalar app).</li>
+        <li>Abre la app instalada y pulsa <strong>Buscar ROOKIE</strong>.</li>
+        <li>Elige tu luna <code>ROOKIE-XXXX</code> y controla color y efectos.</li>
+      </ol>
+
+      <p class="hint url-hint" id="product-url">—</p>
+      <img
+        id="qr-product"
+        class="qr-product"
+        src="icons/qr-producto.png"
+        alt="QR para instalar ROOKIE GLOW"
+        width="220"
+        height="220"
+      />
+      <p class="hint">Imprime este QR en la caja del producto.</p>
+    </main>
+
+    <footer class="foot">
+      <p>ROOKIE GLOW · Web Bluetooth requiere HTTPS · No uses la red Wi‑Fi del ESP solo para la app.</p>
+    </footer>
+
+    <script>
+      const urlEl = document.getElementById('product-url');
+      const qrImg = document.getElementById('qr-product');
+      const installBtn = document.getElementById('btn-install-product');
+      let deferred = null;
+
+      function resolveUrl(cfg) {
+        const { hostname, protocol, origin, pathname } = window.location;
+        const isLocal =
+          hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+        if (!isLocal && protocol === 'https:') {
+          return origin + pathname;
+        }
+        const fromCfg = (cfg && (cfg.productPage || cfg.url)) || null;
+        if (fromCfg) return fromCfg;
+        return origin + pathname;
+      }
+
+      fetch('./install-url.json', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((cfg) => {
+          const url = resolveUrl(cfg);
+          urlEl.textContent = url;
+          qrImg.onerror = () => {
+            qrImg.src =
+              'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' +
+              encodeURIComponent(url);
+          };
+        })
+        .catch(() => {
+          urlEl.textContent = window.location.href.split('#')[0];
+        });
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferred = e;
+        installBtn.hidden = false;
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (!deferred) return;
+        deferred.prompt();
+        await deferred.userChoice;
+        deferred = null;
+        installBtn.hidden = true;
+      });
+    </script>
+  </body>
+</html>
