@@ -339,6 +339,13 @@ html[data-theme='light'] .hint code {
   border-color: transparent;
 }
 
+.share-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.55rem 0 0.35rem;
+}
+
 .known-list {
   margin-top: 0.85rem;
   display: grid;

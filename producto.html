@@ -87,12 +87,16 @@
       <img
         id="qr-product"
         class="qr-product"
-        src="icons/qr-producto.png"
         alt="QR para instalar ROOKIE GLOW"
         width="220"
         height="220"
       />
-      <p class="hint">Imprime este QR en la caja del producto.</p>
+      <div class="product-cta" style="margin-top:0.75rem">
+        <button type="button" id="btn-share-product" class="btn">Compartir enlace</button>
+        <button type="button" id="btn-copy-product" class="btn ghost">Copiar enlace</button>
+        <a id="btn-download-product-qr" class="btn ghost" href="#" download="rookie-glow-qr.png">Descargar QR</a>
+      </div>
+      <p class="hint">Comparte o imprime este QR (apunta a esta misma versión publicada).</p>
     </main>
 
     <footer class="foot">
@@ -103,34 +107,81 @@
       const urlEl = document.getElementById('product-url');
       const qrImg = document.getElementById('qr-product');
       const installBtn = document.getElementById('btn-install-product');
+      const shareBtn = document.getElementById('btn-share-product');
+      const copyBtn = document.getElementById('btn-copy-product');
+      const dlQr = document.getElementById('btn-download-product-qr');
       let deferred = null;
+      let shareUrl = '';
+
+      function qrUrl(url, size) {
+        return (
+          'https://api.qrserver.com/v1/create-qr-code/?size=' +
+          size +
+          'x' +
+          size +
+          '&margin=8&data=' +
+          encodeURIComponent(url)
+        );
+      }
 
       function resolveUrl(cfg) {
         const { hostname, protocol, origin, pathname } = window.location;
         const isLocal =
           hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
         if (!isLocal && protocol === 'https:') {
-          return origin + pathname;
+          return origin + pathname.replace(/[^/]+$/, '') + 'producto.html';
         }
-        const fromCfg = (cfg && (cfg.productPage || cfg.url)) || null;
-        if (fromCfg) return fromCfg;
+        const fromCfg = (cfg && (cfg.productPage || cfg.url)) || '';
+        if (fromCfg && !/github\.io\/rookie-glow/i.test(fromCfg)) {
+          return fromCfg.includes('producto') ? fromCfg : fromCfg.replace(/\/?$/, '/') + 'producto.html';
+        }
         return origin + pathname;
+      }
+
+      function apply(url) {
+        shareUrl = url;
+        urlEl.textContent = url;
+        qrImg.src = qrUrl(url, 400);
+        qrImg.alt = 'QR ' + url;
+        dlQr.href = qrUrl(url, 600);
       }
 
       fetch('./install-url.json', { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : null))
-        .then((cfg) => {
-          const url = resolveUrl(cfg);
-          urlEl.textContent = url;
-          qrImg.onerror = () => {
-            qrImg.src =
-              'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' +
-              encodeURIComponent(url);
-          };
-        })
-        .catch(() => {
-          urlEl.textContent = window.location.href.split('#')[0];
-        });
+        .then((cfg) => apply(resolveUrl(cfg)))
+        .catch(() => apply(window.location.href.split('#')[0]));
+
+      shareBtn.addEventListener('click', async () => {
+        if (!shareUrl) return;
+        try {
+          if (navigator.share) {
+            await navigator.share({
+              title: 'ROOKIE GLOW',
+              text: 'Instala ROOKIE GLOW',
+              url: shareUrl,
+            });
+            return;
+          }
+        } catch (e) {
+          if (e && e.name === 'AbortError') return;
+        }
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          shareBtn.textContent = 'Copiado';
+        } catch {
+          /* ignore */
+        }
+      });
+
+      copyBtn.addEventListener('click', async () => {
+        if (!shareUrl) return;
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          copyBtn.textContent = 'Copiado';
+        } catch {
+          /* ignore */
+        }
+      });
 
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();

@@ -610,6 +610,19 @@ ble.onDisconnected = (id) => {
 };
 ble.onRosterChange = () => setConnUI();
 
+let installShareUrl = '';
+
+function qrImageUrl(url, size = 400) {
+  return (
+    'https://api.qrserver.com/v1/create-qr-code/?size=' +
+    size +
+    'x' +
+    size +
+    '&margin=8&data=' +
+    encodeURIComponent(url)
+  );
+}
+
 function resolveInstallUrl(cfg) {
   const { hostname, protocol, origin, pathname } = window.location;
   const isLocal =
@@ -618,31 +631,76 @@ function resolveInstallUrl(cfg) {
     const dir = pathname.replace(/[^/]+$/, '');
     return origin + (dir || '/');
   }
-  return (cfg && cfg.url) || window.location.href.split('#')[0];
+  const fromCfg = (cfg && cfg.url) || '';
+  if (fromCfg && !/github\.io\/rookie-glow/i.test(fromCfg)) return fromCfg;
+  return window.location.href.split('#')[0];
+}
+
+function applyInstallQr(url) {
+  installShareUrl = url;
+  const img = $('#qr-install');
+  const urlEl = $('#install-url');
+  if (urlEl) urlEl.textContent = url;
+  if (img) {
+    // Siempre QR de la URL actual (nunca el PNG viejo de github.io)
+    img.src = qrImageUrl(url, 240);
+    img.alt = 'QR ' + url;
+  }
+}
+
+async function shareInstallLink() {
+  if (!installShareUrl) return;
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: 'ROOKIE GLOW',
+        text: 'Instala ROOKIE GLOW y controla tu luna por Bluetooth',
+        url: installShareUrl,
+      });
+      toast('Enlace compartido', 'ok');
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+  }
+  try {
+    await navigator.clipboard.writeText(installShareUrl);
+    toast('Enlace copiado', 'ok');
+  } catch {
+    toast(installShareUrl);
+  }
+}
+
+async function copyInstallLink() {
+  if (!installShareUrl) return;
+  try {
+    await navigator.clipboard.writeText(installShareUrl);
+    toast('Enlace copiado', 'ok');
+  } catch {
+    toast('No se pudo copiar', 'error');
+  }
+}
+
+function downloadInstallQr() {
+  if (!installShareUrl) return;
+  const a = document.createElement('a');
+  a.href = qrImageUrl(installShareUrl, 600);
+  a.download = 'rookie-glow-qr.png';
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.click();
+  toast('Descargando QR…');
 }
 
 function setupQr() {
-  const img = $('#qr-install');
-  const urlEl = $('#install-url');
   fetch('./install-url.json', { cache: 'no-store' })
     .then((r) => (r.ok ? r.json() : null))
-    .then((cfg) => {
-      const url = resolveInstallUrl(cfg);
-      urlEl.textContent = url;
-      img.src = `./icons/qr-install.png?t=${Date.now()}`;
-      img.onerror = () => {
-        img.src =
-          'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' +
-          encodeURIComponent(url);
-      };
-    })
-    .catch(() => {
-      const url = resolveInstallUrl(null);
-      urlEl.textContent = url;
-      img.src =
-        'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' +
-        encodeURIComponent(url);
-    });
+    .then((cfg) => applyInstallQr(resolveInstallUrl(cfg)))
+    .catch(() => applyInstallQr(resolveInstallUrl(null)));
+
+  $('#btn-share-link')?.addEventListener('click', shareInstallLink);
+  $('#btn-copy-link')?.addEventListener('click', copyInstallLink);
+  $('#btn-download-qr')?.addEventListener('click', downloadInstallQr);
 }
 
 function init() {

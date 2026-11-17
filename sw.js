@@ -1,5 +1,5 @@
 /* Service worker Lunas — cache offline de la shell PWA */
-const CACHE = 'rookie-glow-v10';
+const CACHE = 'rookie-glow-v11';
 const ASSETS = [
   './',
   './index.html',
